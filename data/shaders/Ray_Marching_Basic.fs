@@ -128,6 +128,7 @@ float sdfBox(vec3 point, vec3 center, vec3 b) {
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
+
 //----------------------SDF OPERATIONS------------------------------
 
 float opUnion(float dist1, float dist2) {
@@ -136,17 +137,32 @@ float opUnion(float dist1, float dist2) {
     }
     return dist2;
 }
+float opSubtraction( float d1, float d2 ) {
+    return max(-d1,d2);
+}
+
+float opIntersection( float d1, float d2 ) {
+    return max(d1,d2);
+}
+
+float opSmoothUnion( float d1, float d2, float k ) {
+    float h = max(k-abs(d1-d2),0.0);
+    return min(d1, d2) - h*h*0.25/k;
+}
 
 //----------------------CREATE YOUR SCENE------------------------
 float sdfScene(vec3 position) {
     //Define final distance
     float dist = 0.0; 
     //Define sphere
-    vec3 sphere_pos = vec3(0.0); float sphere_rad = 0.25;
+    vec3 sphere_pos = vec3(0.0);
+    //float sphere_rad = 0.25;
+    float sphere_rad = 0.25 + 0.1*snoise(vec4(position*20, u_time));
     float dist_esphere = sdfSphere(position,sphere_pos,sphere_rad); 
+    float dist_cube = sdfBox(position - vec3(0.1), vec3(0.15), vec3(0.15));
  
 
-    dist = dist_esphere;
+    dist = opSmoothUnion(dist_esphere, dist_cube, 1.5);
     return dist;
 }
 
