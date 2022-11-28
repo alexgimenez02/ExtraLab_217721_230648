@@ -10,9 +10,7 @@ uniform mat4 u_viewprojection;
 uniform vec2 u_iRes;
 uniform vec3 u_camera_pos;
 
-#define RING_RADIUS 1.5
-
-
+//Edit
 float random (in vec2 st) {
     return fract(sin(dot(st.xy,
                          vec2(12.9898,78.233)))
@@ -21,6 +19,118 @@ float random (in vec2 st) {
 float dot2( in vec2 v ) { return dot(v,v); }
 float dot2( in vec3 v ) { return dot(v,v); }
 float ndot( in vec2 a, in vec2 b ) { return a.x*b.x - a.y*b.y; }
+//-------------------------EXTRA------------------------
+float smax( float a, float b, float k )
+{
+    float h = max(k-abs(a-b),0.0);
+    return max(a, b) + h*h*0.25/k;
+}
+
+// https://iquilezles.org/articles/distfunctions
+float sdSphere( in vec3 p, in float r )
+{
+    return length(p)-r;
+}
+
+float sdVerticalSemiCapsule( vec3 p, float h, float r )
+{
+    p.y = max(p.y-h,0.0);
+    return length( p ) - r;
+}
+float sdCross( in vec2 p, in vec2 b, float r ) 
+{
+    p = abs(p); p = (p.y>p.x) ? p.yx : p.xy;
+    
+	vec2  q = p - b;
+    float k = max(q.y,q.x);
+    vec2  w = (k>0.0) ? q : vec2(b.y-p.x,-k);
+    
+    return sign(k)*length(max(w,0.0)) + r;
+}
+float sdTrapezoid( in vec2 p, in float r1, float r2, float he )
+{
+    vec2 k1 = vec2(r2,he);
+    vec2 k2 = vec2(r2-r1,2.0*he);
+
+	p.x = abs(p.x);
+    vec2 ca = vec2(max(0.0,p.x-((p.y<0.0)?r1:r2)), abs(p.y)-he);
+    vec2 cb = p - k1 + k2*clamp( dot(k1-p,k2)/dot2(k2), 0.0, 1.0 );
+    
+    float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
+    
+    return s*sqrt( min(dot2(ca),dot2(cb)) );
+}
+
+// https://iquilezles.org/articles/intersectors
+vec2 iSphere( in vec3 ro, in vec3 rd, in float rad )
+{
+	float b = dot( ro, rd );
+	float c = dot( ro, ro ) - rad*rad;
+	float h = b*b - c;
+	if( h<0.0 ) return vec2(-1.0);
+    h = sqrt(h);
+	return vec2(-b-h, -b+h );
+}
+
+//----------------------------------
+
+float dents( in vec2 q, in float tr, in float y )
+{
+    const float an = 6.283185/12.0;
+    float fa = (atan(q.y,q.x)+an*0.5)/an;
+    float sym = an*floor(fa);
+    vec2 r = mat2(cos(sym),-sin(sym), sin(sym), cos(sym))*q;
+    
+#if 1
+    float d = length(max(abs(r-vec2(0.17,0))-tr*vec2(0.042,0.041*y),0.0));
+#else
+    float d = sdTrapezoid( r.yx-vec2(0.0,0.17), 0.085*y, 0.028*y, tr*0.045 );
+#endif
+
+	return d - 0.005*tr;
+}
+
+vec4 gear(vec3 q, float off, float time)
+{
+    {
+    float an = 2.0*time*sign(q.y) + off*6.283185/24.0;
+    float co = cos(an), si = sin(an);
+    q.xz = mat2(co,-si,si,co)*q.xz;
+    }
+    
+    q.y = abs(q.y);
+    
+    float an2 = 2.0*min(1.0-2.0*abs(fract(0.5+time/10.0)-0.5),1.0/2.0);
+    vec3 tr = min( 10.0*an2 - vec3(4.0,6.0,8.0),1.0);
+    
+    // ring
+    float d = abs(length(q.xz) - 0.155*tr.y) - 0.018;
+
+    // add dents
+    float r = length(q);
+    d = min( d, dents(q.xz,tr.z, r) );
+
+    
+    // slice it
+    float de = -0.0015*clamp(600.0*abs(dot(q.xz,q.xz)-0.155*0.155),0.0,1.0);
+    d = smax( d, abs(r-0.5)-0.03+de, 0.005*tr.z );
+
+    // add cross
+    float d3 = sdCross( q.xz, vec2(0.15,0.022)*tr.y, 0.02*tr.y );
+    vec2 w = vec2( d3, abs(q.y-0.485)-0.005*tr.y );
+    d3 = min(max(w.x,w.y),0.0) + length(max(w,0.0))-0.003*tr.y;
+    d = min( d, d3 ); 
+        
+    // add pivot
+    d = min( d, sdVerticalSemiCapsule( q, 0.5*tr.x, 0.01 ));
+
+    // base
+    d = min( d, sdSphere(q-vec3(0.0,0.12,0.0),0.025) );
+    
+    return vec4(d,q.xzy);
+}
+
+
 //-------------------------PERLIN NOISE-----------------
 //  Simplex 4D Noise 
 //  by Ian McEwan, Ashima Arts
@@ -137,10 +247,6 @@ float sdPlane( vec3 p )
 	return p.y;
 }
 
-float sdSphere( vec3 p, float s )
-{
-    return length(p)-s;
-}
 
 float sdBox( vec3 p, vec3 b )
 {
@@ -165,6 +271,10 @@ float sdEllipsoid( in vec3 p, in vec3 r ) // approximated
     return k0*(k0-1.0)/k1;
 }
 
+float sdTorus( vec3 p, vec2 t )
+{
+    return length( vec2(length(p.xz)-t.x,p.y) )-t.y;
+}
 
 float sdCappedTorus(in vec3 p, in vec2 sc, in float ra, in float rb)
 {
@@ -429,18 +539,6 @@ float sdU( in vec3 p, in float r, in float le, vec2 w )
     vec2 q = vec2( (k<0.0) ? -k : length(max(p.xy,0.0)), abs(p.z) ) - w;
     return length(max(q,0.0)) + min(max(q.x,q.y),0.0);
 }
-float Ring(vec3 pos, float r)
-{
-    vec2 t = vec2(r, r * .2);
-    vec2 q = vec2(clamp(2. * (length(pos.xz) - t.x), -5., 5.),pos.y);
-
-    return length(q) - t.y;
-}
-float sdTorus( vec3 p, vec2 t )
-{
-    return length( vec2( clamp(2. * (length(p.xz)-t.x),-0.5,.5),p.y)) - t.y;
-}
-
 
 //----------------------SDF OPERATIONS------------------------------
 
@@ -463,27 +561,14 @@ float opSmoothUnion( float d1, float d2, float k ) {
     return min(d1, d2) - h*h*0.25/k;
 }
 
-
 //----------------------CREATE YOUR SCENE------------------------
 float sdfScene(vec3 position) {
     //Define final distance
     float dist = 0.0; 
     //Define sphere
-    vec3 sphere_pos = vec3(0.0, 2 + sin(u_time), 0.0);
-    //float dist_u = sdU(position, 3.5 + sin(u_time)*0.25, 1.0, vec2(0.5));
-    //float dist_rhombus = sdRhombus(position, 1.5,1.5,1.5,1+sin(u_time)*0.25);
-    //float dist_capsule = sdCapsule(position + vec3(0.0,0.7,0.0),vec3(0.0),vec3(0.0,1.4,0.0),1);
-    float heigth = cos(u_time*3)*2.5 - 0.2;
-    float dist_esphere = 0.0;
-    float sphere_radius = 0.5  * snoise(vec4(position*10,u_time));
-    if(heigth > -1.25){
-        dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,sphere_radius);
-    }else{
-        dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,0.2);
-    }
-    float r = 1.5;
-    float dist_torus = sdTorus(position, vec2(r,r * 0.2));
-    dist =  opUnion(dist_torus,dist_esphere);
+    vec4 unique_gear = gear(position, 0.0, u_time);
+    
+    dist = length(unique_gear);
     return dist;
 }
 

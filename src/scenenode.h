@@ -24,6 +24,7 @@ public:
 
 	Mesh* mesh = NULL;
 	Matrix44 model;
+	bool enabled = true;
 
 	virtual void render(Camera* camera);
 	virtual void renderInMenu();

@@ -10,14 +10,13 @@ uniform mat4 u_viewprojection;
 uniform vec2 u_iRes;
 uniform vec3 u_camera_pos;
 
-#define RING_RADIUS 1.5
-
-
+//Edit
 float random (in vec2 st) {
     return fract(sin(dot(st.xy,
                          vec2(12.9898,78.233)))
                  * 43758.5453123);
 }
+//Edit
 float dot2( in vec2 v ) { return dot(v,v); }
 float dot2( in vec3 v ) { return dot(v,v); }
 float ndot( in vec2 a, in vec2 b ) { return a.x*b.x - a.y*b.y; }
@@ -165,6 +164,10 @@ float sdEllipsoid( in vec3 p, in vec3 r ) // approximated
     return k0*(k0-1.0)/k1;
 }
 
+float sdTorus( vec3 p, vec2 t )
+{
+    return length( vec2(length(p.xz)-t.x,p.y) )-t.y;
+}
 
 float sdCappedTorus(in vec3 p, in vec2 sc, in float ra, in float rb)
 {
@@ -429,18 +432,6 @@ float sdU( in vec3 p, in float r, in float le, vec2 w )
     vec2 q = vec2( (k<0.0) ? -k : length(max(p.xy,0.0)), abs(p.z) ) - w;
     return length(max(q,0.0)) + min(max(q.x,q.y),0.0);
 }
-float Ring(vec3 pos, float r)
-{
-    vec2 t = vec2(r, r * .2);
-    vec2 q = vec2(clamp(2. * (length(pos.xz) - t.x), -5., 5.),pos.y);
-
-    return length(q) - t.y;
-}
-float sdTorus( vec3 p, vec2 t )
-{
-    return length( vec2( clamp(2. * (length(p.xz)-t.x),-0.5,.5),p.y)) - t.y;
-}
-
 
 //----------------------SDF OPERATIONS------------------------------
 
@@ -463,27 +454,19 @@ float opSmoothUnion( float d1, float d2, float k ) {
     return min(d1, d2) - h*h*0.25/k;
 }
 
-
 //----------------------CREATE YOUR SCENE------------------------
 float sdfScene(vec3 position) {
     //Define final distance
     float dist = 0.0; 
     //Define sphere
-    vec3 sphere_pos = vec3(0.0, 2 + sin(u_time), 0.0);
-    //float dist_u = sdU(position, 3.5 + sin(u_time)*0.25, 1.0, vec2(0.5));
-    //float dist_rhombus = sdRhombus(position, 1.5,1.5,1.5,1+sin(u_time)*0.25);
-    //float dist_capsule = sdCapsule(position + vec3(0.0,0.7,0.0),vec3(0.0),vec3(0.0,1.4,0.0),1);
-    float heigth = cos(u_time*3)*2.5 - 0.2;
-    float dist_esphere = 0.0;
-    float sphere_radius = 0.5  * snoise(vec4(position*10,u_time));
-    if(heigth > -1.25){
-        dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,sphere_radius);
-    }else{
-        dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,0.2);
-    }
-    float r = 1.5;
-    float dist_torus = sdTorus(position, vec2(r,r * 0.2));
-    dist =  opUnion(dist_torus,dist_esphere);
+    float posx = tan(u_time) * 3.0;
+    
+    
+    
+    float dist_esphere = sdfSphere(position, vec3(posx,1.2 + sin(u_time*2),0.0), 0.5);
+    float dist_plane = sdPlane(position);
+    
+    dist = opUnion(dist_esphere,opSubtraction(dist_esphere, dist_plane));
     return dist;
 }
 

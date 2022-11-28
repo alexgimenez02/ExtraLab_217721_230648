@@ -18,6 +18,7 @@
 #include "extra/directory_watcher.h"
 
 #include <iostream> //to output
+#include "main.h"
 
 long last_time = 0; //this is used to calcule the elapsed time between frames
 
@@ -177,17 +178,24 @@ void mainLoop(SDL_Window* window)
 
 		//compute delta time
 		long last_time = now;
+		double elapsed_time;
 		now = SDL_GetTicks();
-		double elapsed_time = (now - last_time) * 0.001; //0.001 converts from milliseconds to seconds
-		double last_time_seconds = game->time;
-        game->time = float(now * 0.001f);
-		game->elapsed_time = elapsed_time;
-		game->frame++;
-		frames_this_second++;
-		if (int(last_time_seconds *2) != int(game->time*2)) //next half second
-		{
-			game->fps = frames_this_second*2;
-			frames_this_second = 0;
+		if (!game->controlTime) {
+			elapsed_time = (now - last_time) * 0.001; //0.001 converts from milliseconds to seconds
+			double last_time_seconds = game->time;
+			game->time = float(now * 0.001f);
+			game->elapsed_time = elapsed_time;
+			game->frame++;
+			frames_this_second++;
+			if (int(last_time_seconds *2) != int(game->time*2)) //next half second
+			{
+				game->fps = frames_this_second*2;
+				frames_this_second = 0;
+			}
+		}
+		else {
+			elapsed_time = game->elapsed_time;
+			game->time += elapsed_time;
 		}
 
 		//update game logic

@@ -10,6 +10,7 @@
 
 #include "includes.h"
 #include "framework.h"
+using namespace std;
 
 //General functions **************
 long getTime();

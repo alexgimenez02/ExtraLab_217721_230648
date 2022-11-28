@@ -22,6 +22,7 @@ public:
 	SDL_Window* window;
 	int window_width;
 	int window_height;
+	int current_scene;
 
 	// some globals
 	long frame;
@@ -29,6 +30,7 @@ public:
 	float elapsed_time;
 	int fps;
 	bool must_exit;
+	bool controlTime;
 
 	// some vars
 	static Camera* camera; //our GLOBAL camera
