@@ -3,6 +3,9 @@
 //Optional to use
 uniform vec4 u_color;
 uniform float u_time;
+uniform float u_pos_x;
+uniform float u_pos_y;
+uniform float u_pos_z;
 
 uniform mat4 u_inverse_viewprojection;
 uniform mat4 u_viewprojection;
@@ -470,12 +473,10 @@ float sdfScene(vec3 position) {
     float dist = 0.0; 
     //Define sphere
     vec3 sphere_pos = vec3(0.0, 2 + sin(u_time), 0.0);
-    //float dist_u = sdU(position, 3.5 + sin(u_time)*0.25, 1.0, vec2(0.5));
-    //float dist_rhombus = sdRhombus(position, 1.5,1.5,1.5,1+sin(u_time)*0.25);
-    //float dist_capsule = sdCapsule(position + vec3(0.0,0.7,0.0),vec3(0.0),vec3(0.0,1.4,0.0),1);
     float heigth = cos(u_time*3)*2.5 - 0.2;
     float dist_esphere = 0.0;
-    float sphere_radius = 0.5  * snoise(vec4(position*10,u_time));
+    //float sphere_radius = 0.5  * snoise(vec4(position*10,u_time));
+    float sphere_radius = 0.5;
     if(heigth > -1.25){
         dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,sphere_radius);
     }else{
@@ -483,7 +484,17 @@ float sdfScene(vec3 position) {
     }
     float r = 1.5;
     float dist_torus = sdTorus(position, vec2(r,r * 0.2));
-    dist =  opUnion(dist_torus,dist_esphere);
+    float dist_smooth_torus = sdfBox(position, position + vec3(-0.5,0.0,0.0), vec3(0.2,0.0,0.5));
+    float dist_box1 = sdfBox(position, vec3(1.7,0.0,0.0), vec3(0.1));
+    float dist_box2 = sdfBox(position, vec3(-1.7,0.0,0.0), vec3(0.1));
+    float dist_box3 = sdfBox(position, vec3(0.0,0.0,1.7), vec3(0.1));
+    float dist_box4 = sdfBox(position, vec3(0.0,0.0,-1.7), vec3(0.1));
+    dist = opUnion(dist_box1, dist_box2);
+    dist = opUnion(dist, dist_box3);
+    dist = opUnion(dist, dist_box4);
+    dist_smooth_torus = opSmoothUnion(dist_smooth_torus,dist_torus,0.5);
+    dist = opUnion(dist,dist_smooth_torus);
+    dist = opUnion(dist, dist_esphere);
     return dist;
 }
 
@@ -550,7 +561,7 @@ void main()
         } 
 
         //Calculem la nova posició
-        pos += dir*min_length;              
+        pos += dir*min_length;       
     }
 
     //Modifiquem el color final segons la brillantor

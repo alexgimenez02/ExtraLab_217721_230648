@@ -29,9 +29,12 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 	fps = 0;
 	frame = 0;
 	time = 0.0f;
+	light_int = 0.0f;
 	elapsed_time = 0.0f;
 	mouse_locked = false;
-
+	controlTime = false;
+	pos = Vector3(0.0,0.0,0.0);
+	light_pos = Vector3(0.0,0.0,0.0);
 	// OpenGL flags
 	glEnable( GL_CULL_FACE ); //render both sides of every triangle
 	glEnable( GL_DEPTH_TEST ); //check the occlusions using the Z buffer
@@ -107,11 +110,22 @@ void Application::render(void)
 
 void Application::update(double seconds_elapsed)
 {
-	float speed = seconds_elapsed * 10; //the speed is defined by the seconds_elapsed so it goes constant
-	float orbit_speed = seconds_elapsed * 1;
+	float speed;
+	float orbit_speed;
+	float angle;
+	if(!controlTime) {
+		speed = seconds_elapsed * 10; //the speed is defined by the seconds_elapsed so it goes constant
+		orbit_speed = seconds_elapsed * 1;
 
-	// example
-	float angle = seconds_elapsed * 10.f * DEG2RAD;
+		// example
+		angle = seconds_elapsed * 10.f * DEG2RAD;
+	}
+	else {
+		speed = 0.1;
+		orbit_speed = 0.1;
+
+		angle = .1f * DEG2RAD;
+	}
 	/*for (int i = 0; i < root.size(); i++) {
 		root[i]->model.rotate(angle, Vector3(0,1,0));
 	}*/
@@ -254,5 +268,14 @@ void Application::renderInMenu() {
 		//
 		ImGui::Checkbox("Control time", &controlTime);
 		if(controlTime) ImGui::SliderFloat("Time metric", &elapsed_time, 0.0, 2.0);
+		
+		/*float position_array[] = {pos.x,pos.y,pos.z};
+		ImGui::DragFloat3("Position of selected object", position_array,0.1f);
+		pos = Vector3(position_array[0], position_array[1], position_array[2]);*/
+		float light_array[] = {light_pos.x,light_pos.y,light_pos.z};
+		ImGui::DragFloat3("Light position", light_array,0.1f);
+		light_pos = Vector3(light_array[0], light_array[1], light_array[2]);
+		if (ImGui::Button("Print position")) cout << "Current position: (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << endl;
+		ImGui::SliderFloat("Light intensity", &light_int, 0.01f, 1.0f);
 	}
 }

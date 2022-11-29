@@ -3,13 +3,18 @@
 //Optional to use
 uniform vec4 u_color;
 uniform float u_time;
+uniform float u_light_intensity;
 
 uniform mat4 u_inverse_viewprojection;
 uniform mat4 u_viewprojection;
 
 uniform vec2 u_iRes;
 uniform vec3 u_camera_pos;
+uniform vec3 u_local_camera_position;
 
+uniform float u_light_pos_x;
+uniform float u_light_pos_y;
+uniform float u_light_pos_z;
 //Edit
 float random (in vec2 st) {
     return fract(sin(dot(st.xy,
@@ -19,118 +24,6 @@ float random (in vec2 st) {
 float dot2( in vec2 v ) { return dot(v,v); }
 float dot2( in vec3 v ) { return dot(v,v); }
 float ndot( in vec2 a, in vec2 b ) { return a.x*b.x - a.y*b.y; }
-//-------------------------EXTRA------------------------
-float smax( float a, float b, float k )
-{
-    float h = max(k-abs(a-b),0.0);
-    return max(a, b) + h*h*0.25/k;
-}
-
-// https://iquilezles.org/articles/distfunctions
-float sdSphere( in vec3 p, in float r )
-{
-    return length(p)-r;
-}
-
-float sdVerticalSemiCapsule( vec3 p, float h, float r )
-{
-    p.y = max(p.y-h,0.0);
-    return length( p ) - r;
-}
-float sdCross( in vec2 p, in vec2 b, float r ) 
-{
-    p = abs(p); p = (p.y>p.x) ? p.yx : p.xy;
-    
-	vec2  q = p - b;
-    float k = max(q.y,q.x);
-    vec2  w = (k>0.0) ? q : vec2(b.y-p.x,-k);
-    
-    return sign(k)*length(max(w,0.0)) + r;
-}
-float sdTrapezoid( in vec2 p, in float r1, float r2, float he )
-{
-    vec2 k1 = vec2(r2,he);
-    vec2 k2 = vec2(r2-r1,2.0*he);
-
-	p.x = abs(p.x);
-    vec2 ca = vec2(max(0.0,p.x-((p.y<0.0)?r1:r2)), abs(p.y)-he);
-    vec2 cb = p - k1 + k2*clamp( dot(k1-p,k2)/dot2(k2), 0.0, 1.0 );
-    
-    float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
-    
-    return s*sqrt( min(dot2(ca),dot2(cb)) );
-}
-
-// https://iquilezles.org/articles/intersectors
-vec2 iSphere( in vec3 ro, in vec3 rd, in float rad )
-{
-	float b = dot( ro, rd );
-	float c = dot( ro, ro ) - rad*rad;
-	float h = b*b - c;
-	if( h<0.0 ) return vec2(-1.0);
-    h = sqrt(h);
-	return vec2(-b-h, -b+h );
-}
-
-//----------------------------------
-
-float dents( in vec2 q, in float tr, in float y )
-{
-    const float an = 6.283185/12.0;
-    float fa = (atan(q.y,q.x)+an*0.5)/an;
-    float sym = an*floor(fa);
-    vec2 r = mat2(cos(sym),-sin(sym), sin(sym), cos(sym))*q;
-    
-#if 1
-    float d = length(max(abs(r-vec2(0.17,0))-tr*vec2(0.042,0.041*y),0.0));
-#else
-    float d = sdTrapezoid( r.yx-vec2(0.0,0.17), 0.085*y, 0.028*y, tr*0.045 );
-#endif
-
-	return d - 0.005*tr;
-}
-
-vec4 gear(vec3 q, float off, float time)
-{
-    {
-    float an = 2.0*time*sign(q.y) + off*6.283185/24.0;
-    float co = cos(an), si = sin(an);
-    q.xz = mat2(co,-si,si,co)*q.xz;
-    }
-    
-    q.y = abs(q.y);
-    
-    float an2 = 2.0*min(1.0-2.0*abs(fract(0.5+time/10.0)-0.5),1.0/2.0);
-    vec3 tr = min( 10.0*an2 - vec3(4.0,6.0,8.0),1.0);
-    
-    // ring
-    float d = abs(length(q.xz) - 0.155*tr.y) - 0.018;
-
-    // add dents
-    float r = length(q);
-    d = min( d, dents(q.xz,tr.z, r) );
-
-    
-    // slice it
-    float de = -0.0015*clamp(600.0*abs(dot(q.xz,q.xz)-0.155*0.155),0.0,1.0);
-    d = smax( d, abs(r-0.5)-0.03+de, 0.005*tr.z );
-
-    // add cross
-    float d3 = sdCross( q.xz, vec2(0.15,0.022)*tr.y, 0.02*tr.y );
-    vec2 w = vec2( d3, abs(q.y-0.485)-0.005*tr.y );
-    d3 = min(max(w.x,w.y),0.0) + length(max(w,0.0))-0.003*tr.y;
-    d = min( d, d3 ); 
-        
-    // add pivot
-    d = min( d, sdVerticalSemiCapsule( q, 0.5*tr.x, 0.01 ));
-
-    // base
-    d = min( d, sdSphere(q-vec3(0.0,0.12,0.0),0.025) );
-    
-    return vec4(d,q.xzy);
-}
-
-
 //-------------------------PERLIN NOISE-----------------
 //  Simplex 4D Noise 
 //  by Ian McEwan, Ashima Arts
@@ -233,8 +126,9 @@ float map(float value, float min1, float max1, float min2, float max2) {
 
 //----------------------SDF GEOMETRY------------------------------
 
-float sdfSphere(vec3 point, vec3 center, float r) {    
-    return (length(center - point) - r);
+vec4 sdfSphere(vec3 point, vec3 center, float r, vec3 color) {    
+    
+    return vec4(length(center - point) - r, color);
 }
 
 float sdfBox(vec3 point, vec3 center, vec3 b) {
@@ -562,14 +456,37 @@ float opSmoothUnion( float d1, float d2, float k ) {
 }
 
 //----------------------CREATE YOUR SCENE------------------------
-float sdfScene(vec3 position) {
+vec4 sdfScene(vec3 position) {
     //Define final distance
     float dist = 0.0; 
+    float vec_dist = vec4(0.0);
     //Define sphere
-    vec4 unique_gear = gear(position, 0.0, u_time);
-    
-    dist = length(unique_gear);
-    return dist;
+    vec3 sphere_pos = vec3(0.0, 2 + sin(u_time), 0.0);
+    float heigth = cos(u_time*3)*2.5 - 0.2;
+    float sphere_radius = 0.5;
+    vec4 dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,sphere_radius, vec3(1.5,0.0,0.0));
+    float dist_plane = sdPlane(position); 
+    //if(heigth > -1.25){
+    //}else{
+    //    dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,0.2);
+    //}
+    //float r = 1.5;
+    //float dist_torus = sdTorus(position, vec2(r,r * 0.2));
+    //float dist_smooth_torus = sdfBox(position, position + vec3(-0.5,0.0,0.0), vec3(0.2,0.0,0.5));
+    //float dist_box1 = sdfBox(position, vec3(1.7,0.0,0.0), vec3(0.1));
+    //float dist_box2 = sdfBox(position, vec3(-1.7,0.0,0.0), vec3(0.1));
+    //float dist_box3 = sdfBox(position, vec3(0.0,0.0,1.7), vec3(0.1));
+    //float dist_box4 = sdfBox(position, vec3(0.0,0.0,-1.7), vec3(0.1));
+    //dist = opUnion(dist_box1, dist_box2);
+    //dist = opUnion(dist, dist_box3);
+    //dist = opUnion(dist, dist_box4);
+    //dist_smooth_torus = opSmoothUnion(dist_smooth_torus,dist_torus,0.5);
+    //dist = opUnion(dist,dist_smooth_torus);
+    //dist = opUnion(dist, dist_esphere);  
+    dist = opUnion(dist_esphere.x, dist_plane);
+    vec_dist = dist_esphere;
+    vec_dist.x = dist;
+    return vec_dist;
 }
 
 //-----------------------COMPUTE NORMAL SDF POINT------------------
@@ -590,11 +507,12 @@ vec3 gradient(float h, vec3 coords) {
 //---------------------------SIMPLE PHONG SHADING----------------
 vec3 phong(vec3 position) {
     vec3 normal = gradient(0.0001, position);
-    vec3 l = normalize( vec3(-1.9, 3.0, 3.0) - position );
-    vec3 diff = vec3(0.5) * clamp( dot(l, normal), 0.0, 1.0);
+    vec3 l = normalize( vec3(u_light_pos_x,u_light_pos_y,u_light_pos_z) - position );
+    vec3 v = normalize(u_local_camera_position - position ); 
+    vec3 r = reflect(-l,normal);
+    vec3 diff = vec3(0.5) * (clamp( dot(l, normal), 0.0, 1.0) + pow(clamp(dot(r,v),0.0,1.0), u_light_intensity));
     return diff + vec3(0.1);
 }
-
 
 mat3 setCamera(in vec3 origin, in vec3 target, float rotation) {
     vec3 forward = normalize(target - origin);
@@ -627,10 +545,11 @@ void main()
 
     for(int i=0; i<100; i++){
         float min_length = 0;       
-        min_length = sdfScene(pos);
+        vec4 scene = sdfScene(pos);
+        min_length = scene.x;
         // HIT!! 
         if (min_length < 0.001) {                              
-            acc_color = vec4(phong(pos), 1.0) * u_color;
+            acc_color = vec4(phong(pos) * scene.yzw, 1.0);
             break;
         } 
 

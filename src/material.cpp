@@ -24,6 +24,11 @@ void StandardMaterial::setUniforms(Camera* camera, Matrix44 model)
 	//Compute positions
 	shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
 	shader->setUniform("u_camera_pos", camera->eye);
+	Vector4 local_cam = Vector4(camera->eye, 1.0);
+	Matrix44 inv_model = model;
+	inv_model.inverse();
+	local_cam = inv_model * local_cam;
+	shader->setUniform("u_local_camera_position", local_cam.xyz);
 	shader->setUniform("u_inverse_viewprojection", inv_view);
 	shader->setUniform("u_iRes",Vector2(1.0/(float)Application::instance->window_width, 1.0/(float)Application::instance->window_height));
 
@@ -31,7 +36,14 @@ void StandardMaterial::setUniforms(Camera* camera, Matrix44 model)
 	shader->setUniform("u_color", color);
 
 	//Extra
+	shader->setUniform("u_time", Application::instance->light_int);
 	shader->setUniform("u_time", Application::instance->time);
+	shader->setUniform("u_pos_x", Application::instance->pos.x);
+	shader->setUniform("u_pos_y", Application::instance->pos.y);
+	shader->setUniform("u_pos_z", Application::instance->pos.z);
+	shader->setUniform("u_light_pos_x", Application::instance->light_pos.x);
+	shader->setUniform("u_light_pos_y", Application::instance->light_pos.y);
+	shader->setUniform("u_light_pos_z", Application::instance->light_pos.z);
 }
 
 void StandardMaterial::render(Mesh* mesh, Matrix44 model, Camera* camera)

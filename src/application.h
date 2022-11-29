@@ -28,9 +28,12 @@ public:
 	long frame;
 	float time;
 	float elapsed_time;
+	float light_int;
 	int fps;
 	bool must_exit;
 	bool controlTime;
+	Vector3 pos;
+	Vector3 light_pos;
 
 	// some vars
 	static Camera* camera; //our GLOBAL camera
