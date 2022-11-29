@@ -6,6 +6,7 @@
 StandardMaterial::StandardMaterial()
 {
 	color = vec4(1.f, 1.f, 1.f, 1.f);
+	ball_color = vec4(1.f, 1.f, 1.f, 1.f);
 	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/flat.fs");
 }
 
@@ -34,6 +35,7 @@ void StandardMaterial::setUniforms(Camera* camera, Matrix44 model)
 
 	//SDF attributes	
 	shader->setUniform("u_color", color);
+	shader->setUniform("u_color_1", ball_color);
 
 	//Extra
 	shader->setUniform("u_time", Application::instance->light_int);
@@ -68,5 +70,6 @@ void StandardMaterial::render(Mesh* mesh, Matrix44 model, Camera* camera)
 void StandardMaterial::renderInMenu()
 {
 	ImGui::ColorEdit3("Color", (float*)&color); // Edit 3 floats representing a color
+	ImGui::ColorEdit3("Ball Color", (float*)&ball_color);
 }
 

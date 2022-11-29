@@ -65,7 +65,7 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 		node1->mesh->createQuad(0, 0, 2, 2, false);
 		StandardMaterial* mat1 = new StandardMaterial();
 		node1->material = mat1;
-		mat1->shader = Shader::Get("data/shaders/basic2.vs", "data/shaders/Scene2.fs");
+		mat1->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/Scene2.fs");
 		node_list.push_back(node1);
 		
 		SceneNode* node2 = new SceneNode();
@@ -75,8 +75,18 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 		node2->mesh->createQuad(0, 0, 2, 2, false);
 		StandardMaterial* mat2 = new StandardMaterial();
 		node2->material = mat2;
-		mat2->shader = Shader::Get("data/shaders/basic2.vs", "data/shaders/Scene3.fs");
+		mat2->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/Scene3.fs");
 		node_list.push_back(node2);
+		
+		SceneNode* node3 = new SceneNode();
+		/*node->mesh = new Mesh();
+		node->mesh->createQuad(0, 0, 2, 2, false);*/
+		node3->mesh = new Mesh();
+		node3->mesh->createQuad(0, 0, 2, 2, false);
+		StandardMaterial* mat3 = new StandardMaterial();
+		node3->material = mat3;
+		mat3->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/Scene4.fs");
+		node_list.push_back(node3);
 
 	}	
 	for (size_t i = 0; i < node_list.size(); i++) {
@@ -230,7 +240,7 @@ void Application::renderInMenu() {
 		//ImGui::Checkbox("Set enable/disable", &enabled);
 		ImGui::Text("Scene selector: ");
 		bool changed = false;
-		changed |= ImGui::Combo("Scene", &current_scene, "Ring With Sphere\0Bouncing Ball\0Extraordinary gear\0");
+		changed |= ImGui::Combo("Scene", &current_scene, "The One Ring\0Magical Ring\0Bouncing Ball\0Extraordinary gear\0");
 		if (changed) {
 			for (size_t i = 0; i < node_list.size(); i++) {
 				if (i == current_scene) node_list[i]->enabled = true;
@@ -255,13 +265,15 @@ void Application::renderInMenu() {
 		for (auto& node : node_list)
 		{
 			ss << count;
-			if (ImGui::TreeNode(node->name.c_str()))
-			{
-				node->renderInMenu();
-				ImGui::TreePop();
+			if (node->enabled) {
+				if (ImGui::TreeNode(node->name.c_str()))
+				{
+					node->renderInMenu();
+					ImGui::TreePop();
+				}
+				++count;
+				ss.str("");
 			}
-			++count;
-			ss.str("");
 		}
 		ImGui::TreePop();
 	}
@@ -270,9 +282,9 @@ void Application::renderInMenu() {
 		ImGui::Checkbox("Control time", &controlTime);
 		if(controlTime) ImGui::SliderFloat("Time metric", &elapsed_time, 0.0, 2.0);
 		
-		/*float position_array[] = {pos.x,pos.y,pos.z};
+		float position_array[] = {pos.x,pos.y,pos.z};
 		ImGui::DragFloat3("Position of selected object", position_array,0.1f);
-		pos = Vector3(position_array[0], position_array[1], position_array[2]);*/
+		pos = Vector3(position_array[0], position_array[1], position_array[2]);
 		float light_array[] = {light_pos.x,light_pos.y,light_pos.z};
 		ImGui::DragFloat3("Light position", light_array,0.1f);
 		light_pos = Vector3(light_array[0], light_array[1], light_array[2]);
