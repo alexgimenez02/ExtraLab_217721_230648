@@ -212,7 +212,6 @@
     <ClInclude Include="..\..\src\extra\directory_watcher.h">
       <Filter>extra</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\main.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="extra">

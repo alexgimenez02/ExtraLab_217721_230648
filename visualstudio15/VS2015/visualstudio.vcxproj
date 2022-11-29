@@ -212,7 +212,6 @@
     <ClInclude Include="..\..\src\application.h" />
     <ClInclude Include="..\..\src\includes.h" />
     <ClInclude Include="..\..\src\input.h" />
-    <ClInclude Include="..\..\src\main.h" />
     <ClInclude Include="..\..\src\material.h" />
     <ClInclude Include="..\..\src\mesh.h" />
     <ClInclude Include="..\..\src\rendertotexture.h" />
