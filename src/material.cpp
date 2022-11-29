@@ -44,6 +44,7 @@ void StandardMaterial::setUniforms(Camera* camera, Matrix44 model)
 	shader->setUniform("u_light_pos_x", Application::instance->light_pos.x);
 	shader->setUniform("u_light_pos_y", Application::instance->light_pos.y);
 	shader->setUniform("u_light_pos_z", Application::instance->light_pos.z);
+	if(texture) shader->setUniform("u_texture", texture, 0);
 }
 
 void StandardMaterial::render(Mesh* mesh, Matrix44 model, Camera* camera)

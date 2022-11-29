@@ -13,6 +13,7 @@ uniform mat4 u_viewprojection;
 uniform vec2 u_iRes;
 uniform vec3 u_camera_pos;
 
+uniform sampler2D u_texture;
 #define RING_RADIUS 1.5
 
 
@@ -465,8 +466,52 @@ float opSmoothUnion( float d1, float d2, float k ) {
     float h = max(k-abs(d1-d2),0.0);
     return min(d1, d2) - h*h*0.25/k;
 }
+// Gold color: https://www.shadertoy.com/view/XdVSRV
+const vec3 GOLD1 = vec3(1.1,  0.91, 0.52);
+const vec3 GOLD2 = vec3(1.1,  1.07, 0.88);
+const vec3 GOLD3 = vec3(1.02, 0.82, 0.55);
 
+// ----------------------------------------------
+//  noise: https://www.shadertoy.com/view/4sfGzS
+// ----------------------------------------------
+float hash(float n)
+{
+    return fract(sin(n)*753.5453123);
+}
+float noise(vec3 x)
+{
+    vec3 p = floor(x);
+    vec3 f = fract(x);
+    f = f * f * (3.0 - 2.0 * f);
+	
+    float n = p.x + p.y * 157.0 + 113.0 * p.z;
+    return mix(mix(mix(hash(n +   0.0), hash(n +   1.0), f.x),
+                   mix(hash(n + 157.0), hash(n + 158.0), f.x), f.y),
+               mix(mix(hash(n + 113.0), hash(n + 114.0), f.x),
+                   mix(hash(n + 270.0), hash(n + 271.0), f.x), f.y), f.z);
+}
 
+vec3 Gold(vec3 p)
+{
+    p += .4 * noise(p * 24.);
+    float t = noise(p * 30.);
+    float fade = max(0., sin(u_time * .3));
+
+    vec3 gold = mix(GOLD1, GOLD2, smoothstep(.55, .95, t));
+    gold = mix(gold, GOLD3, smoothstep(.45, .25, t));
+
+	// Glowing "black speech" inscription on the ring.
+    // Flicker depends on the current audio value.
+    if(p.y > .18 && p.y < .23)
+    {
+    	gold +=  8. * fade * vec3(1., .3, 0.) * (1. + 10. * texture(u_texture, vec2(50., 0.)).r);
+    }
+
+    // darker gold tint if the inscription is visible
+    gold *= (1. - 0.666 * fade);
+
+    return gold;
+}
 //----------------------CREATE YOUR SCENE------------------------
 float sdfScene(vec3 position) {
     //Define final distance
@@ -483,8 +528,10 @@ float sdfScene(vec3 position) {
         dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,0.2);
     }
     float r = 1.5;
+    //Comentar report
     float dist_torus = sdTorus(position, vec2(r,r * 0.2));
     float dist_smooth_torus = sdfBox(position, position + vec3(-0.5,0.0,0.0), vec3(0.2,0.0,0.5));
+    //----------------------
     float dist_box1 = sdfBox(position, vec3(1.7,0.0,0.0), vec3(0.1));
     float dist_box2 = sdfBox(position, vec3(-1.7,0.0,0.0), vec3(0.1));
     float dist_box3 = sdfBox(position, vec3(0.0,0.0,1.7), vec3(0.1));
@@ -493,9 +540,9 @@ float sdfScene(vec3 position) {
     dist = opUnion(dist, dist_box3);
     dist = opUnion(dist, dist_box4);
     dist_smooth_torus = opSmoothUnion(dist_smooth_torus,dist_torus,0.5);
-    dist = opUnion(dist,dist_smooth_torus);
-    dist = opUnion(dist, dist_esphere);
-    return dist;
+    dist = opSmoothUnion(dist,dist_smooth_torus,0.2);
+    //dist = opUnion(dist, dist_esphere);
+    return dist_smooth_torus;
 }
 
 //-----------------------COMPUTE NORMAL SDF POINT------------------
@@ -556,7 +603,7 @@ void main()
         min_length = sdfScene(pos);
         // HIT!! 
         if (min_length < 0.001) {                              
-            acc_color = vec4(phong(pos), 1.0) * u_color;
+            acc_color = vec4(phong(pos) + Gold(pos), 1.0) * u_color;
             break;
         } 
 

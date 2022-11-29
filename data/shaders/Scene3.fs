@@ -136,9 +136,9 @@ float sdfBox(vec3 point, vec3 center, vec3 b) {
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
-float sdPlane( vec3 p )
+vec4 sdPlane( vec3 p, vec3 color )
 {
-	return p.y;
+	return vec4(p.y, color);
 }
 
 
@@ -436,8 +436,8 @@ float sdU( in vec3 p, in float r, in float le, vec2 w )
 
 //----------------------SDF OPERATIONS------------------------------
 
-float opUnion(float dist1, float dist2) {
-    if (dist1 < dist2) {
+vec4 opUnion(vec4 dist1, vec4 dist2) {
+    if (dist1.x < dist2.x) {
         return dist1;
     }
     return dist2;
@@ -450,22 +450,33 @@ float opIntersection( float d1, float d2 ) {
     return max(d1,d2);
 }
 
-float opSmoothUnion( float d1, float d2, float k ) {
-    float h = max(k-abs(d1-d2),0.0);
-    return min(d1, d2) - h*h*0.25/k;
+vec4 opSmoothUnion( vec4 d1, vec4 d2, float k ) {
+    float h = max(k-abs(d1.x-d2.x),0.0);
+    vec3 new_color = vec3(0.0);
+    if(d1.x < d2.x){
+        d1.x = d1.x - h*h*0.25/k;
+        new_color = d1.yzw * (1-h) - d2.yzw * (h);
+        new_color.x = clamp(new_color.y,0.5,1.0);
+        return vec4(d1.x,new_color);
+    }
+    d2.x = d2.x - h*h*0.25/k;
+    new_color = d2.yzw * (1-h) - d1.yzw * (h);
+    new_color.y = clamp(new_color.y,0.5,1.0);
+    return vec4(d2.x,new_color);
 }
 
 //----------------------CREATE YOUR SCENE------------------------
+
 vec4 sdfScene(vec3 position) {
     //Define final distance
     float dist = 0.0; 
-    float vec_dist = vec4(0.0);
+    vec4 vec_dist = vec4(0.0);
     //Define sphere
-    vec3 sphere_pos = vec3(0.0, 2 + sin(u_time), 0.0);
+    vec3 sphere_pos = vec3(0.0, 2 + sin(u_time * 0.25), 0.0);
     float heigth = cos(u_time*3)*2.5 - 0.2;
     float sphere_radius = 0.5;
-    vec4 dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,sphere_radius, vec3(1.5,0.0,0.0));
-    float dist_plane = sdPlane(position); 
+    vec4 dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,sphere_radius, vec3(1.0,0.0,0.0));
+    vec4 dist_plane = sdPlane(position, vec3(0.0,1.0,0.0)); 
     //if(heigth > -1.25){
     //}else{
     //    dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,0.2);
@@ -483,9 +494,7 @@ vec4 sdfScene(vec3 position) {
     //dist_smooth_torus = opSmoothUnion(dist_smooth_torus,dist_torus,0.5);
     //dist = opUnion(dist,dist_smooth_torus);
     //dist = opUnion(dist, dist_esphere);  
-    dist = opUnion(dist_esphere.x, dist_plane);
-    vec_dist = dist_esphere;
-    vec_dist.x = dist;
+    vec_dist = opSmoothUnion(dist_esphere, dist_plane, 1.0);
     return vec_dist;
 }
 
