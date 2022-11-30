@@ -32,8 +32,10 @@ public:
 	int fps;
 	bool must_exit;
 	bool controlTime;
+	bool show_light;
 	Vector3 pos;
 	Vector3 light_pos;
+	vec3 light_color;
 
 	// some vars
 	static Camera* camera; //our GLOBAL camera

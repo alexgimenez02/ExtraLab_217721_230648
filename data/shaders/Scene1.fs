@@ -6,6 +6,8 @@ uniform float u_time;
 uniform float u_pos_x;
 uniform float u_pos_y;
 uniform float u_pos_z;
+uniform bool u_light_show;
+uniform vec3 u_light_color;
 
 uniform mat4 u_inverse_viewprojection;
 uniform mat4 u_viewprojection;
@@ -521,31 +523,14 @@ float sdfScene(vec3 position) {
     //Define final distance
     float dist = 0.0; 
     //Define sphere
-    vec3 sphere_pos = vec3(0.0, 2 + sin(u_time), 0.0);
-    float heigth = cos(u_time*3)*2.5 - 0.2;
-    float dist_esphere = 0.0;
-    float sphere_radius = 0.5  * snoise(vec4(position*10,u_time));
-    if(heigth > -1.25){
-        dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,sphere_radius);
-    }else{
-        dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,0.2);
-    }
     float r = 1.5;
     //Comentar report
     float dist_torus = sdTorus(position, vec2(r,r * 0.2));
     float dist_smooth_torus = sdfBox(position, position + vec3(-0.5,0.0,0.0), vec3(0.2,0.0,0.5));
+    dist = opSmoothUnion(dist_smooth_torus,dist_torus,0.5);
     //----------------------
-    float dist_box1 = sdfBox(position, vec3(1.7,0.0,0.0), vec3(0.1));
-    float dist_box2 = sdfBox(position, vec3(-1.7,0.0,0.0), vec3(0.1));
-    float dist_box3 = sdfBox(position, vec3(0.0,0.0,1.7), vec3(0.1));
-    float dist_box4 = sdfBox(position, vec3(0.0,0.0,-1.7), vec3(0.1));
-    dist = opUnion(dist_box1, dist_box2);
-    dist = opUnion(dist, dist_box3);
-    dist = opUnion(dist, dist_box4);
-    dist_smooth_torus = opSmoothUnion(dist_smooth_torus,dist_torus,0.5);
-    dist = opSmoothUnion(dist,dist_smooth_torus,0.2);
     //dist = opUnion(dist, dist_esphere);
-    return dist_smooth_torus;
+    return dist;
 }
 
 //-----------------------COMPUTE NORMAL SDF POINT------------------
@@ -567,8 +552,8 @@ vec3 gradient(float h, vec3 coords) {
 vec3 phong(vec3 position) {
     vec3 normal = gradient(0.0001, position);
     vec3 l = normalize( vec3(u_light_pos_x, u_light_pos_y, u_light_pos_z) - position );
-    vec3 diff = Gold(position) * clamp( dot(l, normal), 0.0, 1.0);
-    return diff + vec3(0.1);
+    vec3 diff =  u_light_color * clamp( dot(l, normal), 0.0, 1.0);
+    return diff + Gold(position);
 }
 
 

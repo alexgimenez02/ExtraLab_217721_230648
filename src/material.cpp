@@ -17,6 +17,10 @@ StandardMaterial::~StandardMaterial()
 
 void StandardMaterial::setUniforms(Camera* camera, Matrix44 model)
 {
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	Matrix44 inv_view = camera->viewprojection_matrix;
 	inv_view.inverse();
@@ -25,6 +29,7 @@ void StandardMaterial::setUniforms(Camera* camera, Matrix44 model)
 	//Compute positions
 	shader->setUniform("u_viewprojection", camera->viewprojection_matrix);
 	shader->setUniform("u_camera_pos", camera->eye);
+	shader->setUniform("u_model", model);
 	Vector4 local_cam = Vector4(camera->eye, 1.0);
 	Matrix44 inv_model = model;
 	inv_model.inverse();
@@ -32,7 +37,6 @@ void StandardMaterial::setUniforms(Camera* camera, Matrix44 model)
 	shader->setUniform("u_local_camera_position", local_cam.xyz);
 	shader->setUniform("u_inverse_viewprojection", inv_view);
 	shader->setUniform("u_iRes",Vector2(1.0/(float)Application::instance->window_width, 1.0/(float)Application::instance->window_height));
-
 	//SDF attributes	
 	shader->setUniform("u_color", color);
 	shader->setUniform("u_color_1", ball_color);
@@ -46,6 +50,10 @@ void StandardMaterial::setUniforms(Camera* camera, Matrix44 model)
 	shader->setUniform("u_light_pos_x", Application::instance->light_pos.x);
 	shader->setUniform("u_light_pos_y", Application::instance->light_pos.y);
 	shader->setUniform("u_light_pos_z", Application::instance->light_pos.z);
+	shader->setUniform("u_light_show", Application::instance->show_light);
+	shader->setUniform("u_light_color", Application::instance->light_color);
+
+	shader->setUniform("u_light_intensity", Application::instance->light_int);
 	if(texture) shader->setUniform("u_texture", texture, 0);
 }
 

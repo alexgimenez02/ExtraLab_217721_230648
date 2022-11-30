@@ -3,7 +3,11 @@
 //Optional to use
 uniform vec4 u_color;
 uniform float u_time;
-
+uniform float u_light_pos_x;
+uniform float u_light_pos_y;
+uniform float u_light_pos_z;
+uniform bool u_light_show;
+uniform vec3 u_light_color;
 uniform mat4 u_inverse_viewprojection;
 uniform mat4 u_viewprojection;
 
@@ -465,8 +469,11 @@ float sdfScene(vec3 position) {
     
     float dist_esphere = sdfSphere(position, vec3(posx,1.2 + sin(u_time*2),0.0), 0.5);
     float dist_plane = sdPlane(position);
-    
     dist = opUnion(dist_esphere,opSubtraction(dist_esphere, dist_plane));
+    if(u_light_show){
+        float light_dist = sdfSphere(position, vec3(u_light_pos_x,u_light_pos_y,u_light_pos_z), 0.3);
+        dist = opUnion(dist, light_dist);
+    }
     return dist;
 }
 

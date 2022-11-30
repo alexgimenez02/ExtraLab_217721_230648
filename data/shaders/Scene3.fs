@@ -3,8 +3,6 @@
 //Optional to use
 uniform vec4 u_color;
 uniform float u_time;
-uniform float u_light_intensity;
-
 uniform mat4 u_inverse_viewprojection;
 uniform mat4 u_viewprojection;
 
@@ -15,6 +13,9 @@ uniform vec3 u_local_camera_position;
 uniform float u_light_pos_x;
 uniform float u_light_pos_y;
 uniform float u_light_pos_z;
+uniform float u_light_intensity;
+uniform bool u_light_show;
+uniform vec3 u_light_color;
 //Edit
 float random (in vec2 st) {
     return fract(sin(dot(st.xy,
@@ -134,6 +135,11 @@ vec4 sdfSphere(vec3 point, vec3 center, float r, vec3 color) {
 float sdfBox(vec3 point, vec3 center, vec3 b) {
   vec3 q = abs(point - center) - b;
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
+}
+
+vec4 sdfBox(vec3 point, vec3 center, vec3 b, vec3 color) {
+  vec3 q = abs(point - center) - b;
+  return vec4(length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0),color);
 }
 
 vec4 sdPlane( vec3 p, vec3 color )
@@ -476,25 +482,12 @@ vec4 sdfScene(vec3 position) {
     float heigth = cos(u_time*3)*2.5 - 0.2;
     float sphere_radius = 0.5;
     vec4 dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,sphere_radius, vec3(1.0,0.0,0.0));
-    vec4 dist_plane = sdPlane(position, vec3(0.0,1.0,0.0)); 
-    //if(heigth > -1.25){
-    //}else{
-    //    dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,0.2);
-    //}
-    //float r = 1.5;
-    //float dist_torus = sdTorus(position, vec2(r,r * 0.2));
-    //float dist_smooth_torus = sdfBox(position, position + vec3(-0.5,0.0,0.0), vec3(0.2,0.0,0.5));
-    //float dist_box1 = sdfBox(position, vec3(1.7,0.0,0.0), vec3(0.1));
-    //float dist_box2 = sdfBox(position, vec3(-1.7,0.0,0.0), vec3(0.1));
-    //float dist_box3 = sdfBox(position, vec3(0.0,0.0,1.7), vec3(0.1));
-    //float dist_box4 = sdfBox(position, vec3(0.0,0.0,-1.7), vec3(0.1));
-    //dist = opUnion(dist_box1, dist_box2);
-    //dist = opUnion(dist, dist_box3);
-    //dist = opUnion(dist, dist_box4);
-    //dist_smooth_torus = opSmoothUnion(dist_smooth_torus,dist_torus,0.5);
-    //dist = opUnion(dist,dist_smooth_torus);
-    //dist = opUnion(dist, dist_esphere);  
-    vec_dist = opSmoothUnion(dist_esphere, dist_plane, 1.0);
+    vec4 dist_plane = sdfBox(position, vec3(0.0,0.0,0.0), vec3(5.0,0.0,5.0), vec3(0.0,0.1,0.0)); 
+    vec_dist = opSmoothUnion(dist_esphere, dist_plane, 0.8);
+    if(u_light_show){
+        vec4 light_dist = sdfSphere(position, vec3(u_light_pos_x,u_light_pos_y,u_light_pos_z), 0.5, u_light_color);
+        vec_dist = opUnion(light_dist, vec_dist);
+    }
     return vec_dist;
 }
 
@@ -519,8 +512,8 @@ vec3 phong(vec3 position) {
     vec3 l = normalize( vec3(u_light_pos_x,u_light_pos_y,u_light_pos_z) - position );
     vec3 v = normalize(u_local_camera_position - position ); 
     vec3 r = reflect(-l,normal);
-    vec3 diff = vec3(0.5) * (clamp( dot(l, normal), 0.0, 1.0) + pow(clamp(dot(r,v),0.0,1.0), u_light_intensity));
-    return diff + vec3(0.1);
+    vec3 diff = u_light_color * (clamp( dot(l, normal), 0.0, 1.0) + pow(clamp(dot(r,v),0.0,1.0), u_light_intensity));
+    return diff + vec3(0.4);
 }
 
 mat3 setCamera(in vec3 origin, in vec3 target, float rotation) {

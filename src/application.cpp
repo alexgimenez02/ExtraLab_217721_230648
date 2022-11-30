@@ -35,6 +35,8 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 	controlTime = false;
 	pos = Vector3(0.0,0.0,0.0);
 	light_pos = Vector3(0.0,0.0,0.0);
+	show_light = false;
+	light_color = vec3(1.0,1.0,1.0);
 	// OpenGL flags
 	glEnable( GL_CULL_FACE ); //render both sides of every triangle
 	glEnable( GL_DEPTH_TEST ); //check the occlusions using the Z buffer
@@ -115,6 +117,7 @@ void Application::render(void)
 
 	for (size_t i = 0; i < node_list.size(); i++) {
 		if(node_list[i]->enabled) node_list[i]->render(camera);
+		if (node_list[i]->name == "Light") node_list[i]->render(camera);
 	}
 
 }
@@ -162,6 +165,9 @@ void Application::update(double seconds_elapsed)
 		Input::centerMouse();
 
 	node_list[0]->model.translateGlobal(camera->eye.x, camera->eye.y, camera->eye.z);
+	for (auto& node : node_list) {
+		if(node->name == "light") node->model.setTranslation(light_pos.x, light_pos.y, light_pos.z);
+	}
 
 }
 
@@ -265,7 +271,7 @@ void Application::renderInMenu() {
 		for (auto& node : node_list)
 		{
 			ss << count;
-			if (node->enabled) {
+			if (node->enabled || node->name == "Light") {
 				if (ImGui::TreeNode(node->name.c_str()))
 				{
 					node->renderInMenu();
@@ -285,10 +291,17 @@ void Application::renderInMenu() {
 		float position_array[] = {pos.x,pos.y,pos.z};
 		ImGui::DragFloat3("Position of selected object", position_array,0.1f);
 		pos = Vector3(position_array[0], position_array[1], position_array[2]);
-		float light_array[] = {light_pos.x,light_pos.y,light_pos.z};
-		ImGui::DragFloat3("Light position", light_array,0.1f);
-		light_pos = Vector3(light_array[0], light_array[1], light_array[2]);
 		if (ImGui::Button("Print position")) cout << "Current position: (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << endl;
-		ImGui::SliderFloat("Light intensity", &light_int, 0.01f, 1.0f);
+		if (ImGui::TreeNode("Light")) {
+			ImGui::Checkbox("Show light", &show_light);
+			if (show_light) {
+				float light_array[] = {light_pos.x,light_pos.y,light_pos.z};
+				ImGui::DragFloat3("Light position", light_array,0.1f);
+				light_pos = Vector3(light_array[0], light_array[1], light_array[2]);
+				ImGui::SliderFloat("Light intensity", &light_int, 0.0f, 10.0f);
+				ImGui::ColorEdit3("Color",(float*)&light_color);
+				if (ImGui::Button("Print color")) cout << "Current light color:\n R: " << light_color.x << " G: " << light_color.y << "B: " << light_color.z << endl;
+			}
+		}
 	}
 }
