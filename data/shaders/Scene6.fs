@@ -143,9 +143,6 @@ float map(float value, float min1, float max1, float min2, float max2) {
 float sdfSphere(vec3 point, vec3 center, float r) {    
     return (length(center - point) - r);
 }
-vec4 sdfSphere(vec3 point, vec3 center, float r, vec3 color) {    
-    return vec4((length(center - point) - r),color);
-}
 
 float sdfBox(vec3 point, vec3 center, vec3 b) {
   vec3 q = abs(point - center) - b;
