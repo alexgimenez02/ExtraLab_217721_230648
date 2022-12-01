@@ -2,7 +2,6 @@
 
 //Optional to use
 uniform vec4 u_color;
-uniform vec4 u_color_1;
 uniform float u_time;
 uniform float u_light_intensity;
 
@@ -205,7 +204,7 @@ vec4 sdfScene(vec3 position) {
     if(heigth > -1.25){
         dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,sphere_radius, vec3(1.0,0.0,0.0));
     }else{
-        dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,0.2, u_color_1);
+        dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,0.2, u_color);
     }
     float r = 1.5;
     //Comentar report
