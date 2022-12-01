@@ -9,6 +9,7 @@ uniform mat4 u_viewprojection;
 
 uniform vec2 u_iRes;
 uniform vec3 u_camera_pos;
+uniform vec3 u_light_position;
 
 #define RING_RADIUS 1.5
 
@@ -469,22 +470,10 @@ float sdfScene(vec3 position) {
     //Define final distance
     float dist = 0.0; 
     //Define sphere
-    vec3 sphere_pos = vec3(0.0, 2 + sin(u_time), 0.0);
-    //float dist_u = sdU(position, 3.5 + sin(u_time)*0.25, 1.0, vec2(0.5));
-    //float dist_rhombus = sdRhombus(position, 1.5,1.5,1.5,1+sin(u_time)*0.25);
-    //float dist_capsule = sdCapsule(position + vec3(0.0,0.7,0.0),vec3(0.0),vec3(0.0,1.4,0.0),1);
-    float heigth = cos(u_time*3)*2.5 - 0.2;
-    float dist_esphere = 0.0;
-    float sphere_radius = 0.5  * snoise(vec4(position*10,u_time));
-    if(heigth > -1.25){
-        dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,sphere_radius);
-    }else{
-        dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,0.2);
-    }
-    float r = 1.5;
-    float dist_torus = sdTorus(position, vec2(r,r * 0.2));
-    dist =  opUnion(dist_torus,dist_esphere);
-    return dist;
+    vec3 sphere_pos = vec3(0.0, 0.0, 0.0);
+    float sphere_radius = 0.5;
+    float dist_esphere = sdfSphere(position, sphere_pos, sphere_radius );
+    return dist_esphere;
 }
 
 //-----------------------COMPUTE NORMAL SDF POINT------------------
@@ -505,7 +494,7 @@ vec3 gradient(float h, vec3 coords) {
 //---------------------------SIMPLE PHONG SHADING----------------
 vec3 phong(vec3 position) {
     vec3 normal = gradient(0.0001, position);
-    vec3 l = normalize( vec3(-1.9, 3.0, 3.0) - position );
+    vec3 l = normalize( u_light_position - position );
     vec3 diff = vec3(0.5) * clamp( dot(l, normal), 0.0, 1.0);
     return diff + vec3(0.1);
 }

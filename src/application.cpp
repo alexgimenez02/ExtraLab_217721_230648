@@ -29,12 +29,12 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 	fps = 0;
 	frame = 0;
 	time = 0.0f;
-	light_int = 0.0f;
+	light_int = 0.01f;
 	elapsed_time = 0.0f;
 	mouse_locked = false;
 	controlTime = false;
 	pos = Vector3(0.0,0.0,0.0);
-	light_pos = Vector3(0.0,0.0,0.0);
+	light_pos = Vector3(1.0,3.0,-1.0);
 	show_light = false;
 	light_color = vec3(1.0,1.0,1.0);
 	// OpenGL flags
@@ -47,6 +47,16 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 	camera->setPerspective(45.f, window_width/(float)window_height, .1f, 1000.f); //set the projection, we want to be perspectiv
 	current_scene = 0;
 	{
+
+		SceneNode* node0 = new SceneNode();
+		/*node->mesh = new Mesh();
+		node->mesh->createQuad(0, 0, 2, 2, false);*/
+		node0->mesh = new Mesh();
+		node0->mesh->createQuad(0, 0, 2, 2, false);
+		StandardMaterial* mat0 = new StandardMaterial();
+		node0->material = mat0;
+		mat0->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/Ray_Marching_Basic.fs");
+		node_list.push_back(node0);
 		// EXAMPLE OF HOW TO CREATE A SCENE NODE
 		SceneNode* node = new SceneNode();
 		/*node->mesh = new Mesh();
@@ -57,9 +67,7 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 		node->material = mat;
 		mat->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/Scene1.fs");
 		mat->texture = Texture::Get("data/images/blueNoise.png", GL_REPEAT);
-		mat->texture = Texture::Get("data/images/eye.png", GL_REPEAT);
 		node_list.push_back(node);
-		
 		
 		SceneNode* node1 = new SceneNode();
 		/*node->mesh = new Mesh();
@@ -90,6 +98,27 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 		node3->material = mat3;
 		mat3->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/Scene4.fs");
 		node_list.push_back(node3);
+		
+		SceneNode* node4 = new SceneNode();
+		/*node->mesh = new Mesh();
+		node->mesh->createQuad(0, 0, 2, 2, false);*/
+		node4->mesh = new Mesh();
+		node4->mesh->createQuad(0, 0, 2, 2, false);
+		StandardMaterial* mat4 = new StandardMaterial();
+		node4->material = mat4;
+		mat4->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/Scene5.fs");
+		node_list.push_back(node4);
+		
+		SceneNode* node5 = new SceneNode();
+		/*node->mesh = new Mesh();
+		node->mesh->createQuad(0, 0, 2, 2, false);*/
+		node5->mesh = new Mesh();
+		node5->mesh->createQuad(0, 0, 2, 2, false);
+		StandardMaterial* mat5 = new StandardMaterial();
+		node5->material = mat5;
+		node5->material->texture = Texture::Get("data/images/blueNoise.png", GL_REPEAT);
+		mat5->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/Scene6.fs");
+		node_list.push_back(node5);
 
 	}	
 	for (size_t i = 0; i < node_list.size(); i++) {
@@ -247,7 +276,7 @@ void Application::renderInMenu() {
 		//ImGui::Checkbox("Set enable/disable", &enabled);
 		ImGui::Text("Scene selector: ");
 		bool changed = false;
-		changed |= ImGui::Combo("Scene", &current_scene, "The One Ring\0Magical Ring\0Bouncing Ball\0Extraordinary gear\0");
+		changed |= ImGui::Combo("Scene", &current_scene, "Basic\0The One Ring\0Bouncing Ball\0Pillars\0Magical Ring\0Colors Prism\0Eye of Sauron (not sdf)\0");
 		if (changed) {
 			for (size_t i = 0; i < node_list.size(); i++) {
 				if (i == current_scene) node_list[i]->enabled = true;
@@ -294,12 +323,12 @@ void Application::renderInMenu() {
 		pos = Vector3(position_array[0], position_array[1], position_array[2]);
 		if (ImGui::Button("Print position")) cout << "Current position: (" << pos.x << ", " << pos.y << ", " << pos.z << ")" << endl;
 		if (ImGui::TreeNode("Light")) {
-			ImGui::Checkbox("Show light", &show_light);
+			ImGui::Checkbox("Modify light", &show_light);
 			if (show_light) {
 				float light_array[] = {light_pos.x,light_pos.y,light_pos.z};
 				ImGui::DragFloat3("Light position", light_array,0.1f);
 				light_pos = Vector3(light_array[0], light_array[1], light_array[2]);
-				ImGui::SliderFloat("Light intensity", &light_int, 0.0f, 10.0f);
+				ImGui::SliderFloat("Light intensity", &light_int, 0.01f, 10.0f);
 				ImGui::ColorEdit3("Color",(float*)&light_color);
 				if (ImGui::Button("Print color")) cout << "Current light color:\n R: " << light_color.x << " G: " << light_color.y << "B: " << light_color.z << endl;
 			}

@@ -6,7 +6,6 @@
 StandardMaterial::StandardMaterial()
 {
 	color = vec4(1.f, 1.f, 1.f, 1.f);
-	ball_color = vec4(1.f, 1.f, 1.f, 1.f);
 	shader = Shader::Get("data/shaders/basic.vs", "data/shaders/flat.fs");
 }
 
@@ -39,7 +38,6 @@ void StandardMaterial::setUniforms(Camera* camera, Matrix44 model)
 	shader->setUniform("u_iRes",Vector2(1.0/(float)Application::instance->window_width, 1.0/(float)Application::instance->window_height));
 	//SDF attributes	
 	shader->setUniform("u_color", color);
-	shader->setUniform("u_color_1", ball_color);
 
 	//Extra
 	shader->setUniform("u_time", Application::instance->light_int);
@@ -50,11 +48,15 @@ void StandardMaterial::setUniforms(Camera* camera, Matrix44 model)
 	shader->setUniform("u_light_pos_x", Application::instance->light_pos.x);
 	shader->setUniform("u_light_pos_y", Application::instance->light_pos.y);
 	shader->setUniform("u_light_pos_z", Application::instance->light_pos.z);
+	shader->setUniform("u_light_position", Application::instance->light_pos);
 	shader->setUniform("u_light_show", Application::instance->show_light);
 	shader->setUniform("u_light_color", Application::instance->light_color);
 
 	shader->setUniform("u_light_intensity", Application::instance->light_int);
-	if(texture) shader->setUniform("u_texture", texture, 0);
+	if (texture) {
+		shader->setUniform("u_texture", texture, 0);
+		shader->setUniform("u_texture_resolution", vec2(texture->width,texture->height));
+	}
 }
 
 void StandardMaterial::render(Mesh* mesh, Matrix44 model, Camera* camera)
@@ -78,6 +80,5 @@ void StandardMaterial::render(Mesh* mesh, Matrix44 model, Camera* camera)
 void StandardMaterial::renderInMenu()
 {
 	ImGui::ColorEdit3("Color", (float*)&color); // Edit 3 floats representing a color
-	ImGui::ColorEdit3("Ball Color", (float*)&ball_color);
 }
 

@@ -12,9 +12,7 @@ public:
 
 	Shader* shader = NULL;
 	Texture* texture = NULL;
-	Texture* background_texture = NULL;
 	vec4 color;
-	vec4 ball_color;
 
 	virtual void setUniforms(Camera* camera, Matrix44 model) = 0;
 	virtual void render(Mesh* mesh, Matrix44 model, Camera * camera) = 0;

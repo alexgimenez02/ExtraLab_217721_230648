@@ -368,7 +368,7 @@ Vector3 reflect(const Vector3& I, const Vector3& N);
 inline float random(float range = 1.0f, int offset = 0) { return ((rand() % 1000) / (1000.0f)) * range + offset; }
 
 
-typedef Vector3 vec2;
+typedef Vector2 vec2;
 typedef Vector3 vec3;
 typedef Vector4 vec4;
 typedef Matrix44 mat4;
