@@ -57,6 +57,7 @@ Application::Application(int window_width, int window_height, SDL_Window* window
 		node->material = mat;
 		mat->shader = Shader::Get("data/shaders/basic.vs", "data/shaders/Scene1.fs");
 		mat->texture = Texture::Get("data/images/blueNoise.png", GL_REPEAT);
+		mat->texture = Texture::Get("data/images/eye.png", GL_REPEAT);
 		node_list.push_back(node);
 		
 		

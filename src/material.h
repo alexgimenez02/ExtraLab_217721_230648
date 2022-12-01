@@ -12,6 +12,7 @@ public:
 
 	Shader* shader = NULL;
 	Texture* texture = NULL;
+	Texture* background_texture = NULL;
 	vec4 color;
 	vec4 ball_color;
 

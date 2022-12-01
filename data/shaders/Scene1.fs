@@ -591,7 +591,7 @@ void main()
         min_length = sdfScene(pos);
         // HIT!! 
         if (min_length < 0.001) {                              
-            acc_color = vec4(phong(pos), 1.0) * u_color;
+            acc_color = vec4(phong(pos), 1.0) * u_color ;
             break;
         } 
 

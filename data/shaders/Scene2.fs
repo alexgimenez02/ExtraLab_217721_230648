@@ -495,7 +495,7 @@ vec3 gradient(float h, vec3 coords) {
 //---------------------------SIMPLE PHONG SHADING----------------
 vec3 phong(vec3 position) {
     vec3 normal = gradient(0.0001, position);
-    vec3 l = normalize( vec3(-1.9, 3.0, 3.0) - position );
+    vec3 l = normalize( vec3(u_light_pos_x, u_light_pos_y, u_light_pos_z) - position );
     vec3 diff = vec3(0.5) * clamp( dot(l, normal), 0.0, 1.0);
     return diff + vec3(0.1);
 }

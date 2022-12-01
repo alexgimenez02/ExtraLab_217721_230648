@@ -210,6 +210,20 @@ float sdOctogonPrism( in vec3 p, in float r, float h )
   vec2 d = vec2( length(p.xy)*sign(p.y), p.z-h );
   return min(max(d.x,d.y),0.0) + length(max(d,0.0));
 }
+vec4 sdOctogonPrism( in vec3 p, in float r, float h, vec3 color )
+{
+  const vec3 k = vec3(-0.9238795325,   // sqrt(2+sqrt(2))/2 
+                       0.3826834323,   // sqrt(2-sqrt(2))/2
+                       0.4142135623 ); // sqrt(2)-1 
+  // reflections
+  p = abs(p);
+  p.xy -= 2.0*min(dot(vec2( k.x,k.y),p.xy),0.0)*vec2( k.x,k.y);
+  p.xy -= 2.0*min(dot(vec2(-k.x,k.y),p.xy),0.0)*vec2(-k.x,k.y);
+  // polygon side
+  p.xy -= vec2(clamp(p.x, -k.z*r, k.z*r), r);
+  vec2 d = vec2( length(p.xy)*sign(p.y), p.z-h );
+  return vec4(min(max(d.x,d.y),0.0) + length(max(d,0.0)),color);
+}
 
 float sdCapsule( vec3 p, vec3 a, vec3 b, float r )
 {
@@ -269,12 +283,30 @@ float sdTriPrism( vec3 p, vec2 h )
     float d2 = abs(p.z)-h.y;
     return length(max(vec2(d1,d2),0.0)) + min(max(d1,d2), 0.);
 }
+vec4 sdTriPrism( vec3 p, vec2 h, vec3 color )
+{
+    const float k = sqrt(3.0);
+    h.x *= 0.5*k;
+    p.xy /= h.x;
+    p.x = abs(p.x) - 1.0;
+    p.y = p.y + 1.0/k;
+    if( p.x+k*p.y>0.0 ) p.xy=vec2(p.x-k*p.y,-k*p.x-p.y)/2.0;
+    p.x -= clamp( p.x, -2.0, 0.0 );
+    float d1 = length(p.xy)*sign(-p.y)*h.x;
+    float d2 = abs(p.z)-h.y;
+    return vec4(length(max(vec2(d1,d2),0.0)) + min(max(d1,d2), 0.),color);
+}
 
 // vertical
 float sdCylinder( vec3 p, vec2 h )
 {
     vec2 d = abs(vec2(length(p.xz),p.y)) - h;
     return min(max(d.x,d.y),0.0) + length(max(d,0.0));
+}
+vec4 sdCylinder( vec3 p, vec2 h , vec3 color)
+{
+    vec2 d = abs(vec2(length(p.xz),p.y)) - h;
+    return vec4(min(max(d.x,d.y),0.0) + length(max(d,0.0)), color);
 }
 
 // arbitrary orientation
@@ -292,7 +324,20 @@ float sdCylinder(vec3 p, vec3 a, vec3 b, float r)
     float d = (max(x,y)<0.0)?-min(x2,y2):(((x>0.0)?x2:0.0)+((y>0.0)?y2:0.0));
     return sign(d)*sqrt(abs(d))/baba;
 }
+vec4 sdCylinder(vec3 p, vec3 a, vec3 b, float r, vec3 color)
+{
+    vec3 pa = p - a;
+    vec3 ba = b - a;
+    float baba = dot(ba,ba);
+    float paba = dot(pa,ba);
 
+    float x = length(pa*baba-ba*paba) - r*baba;
+    float y = abs(paba-baba*0.5)-baba*0.5;
+    float x2 = x*x;
+    float y2 = y*y*baba;
+    float d = (max(x,y)<0.0)?-min(x2,y2):(((x>0.0)?x2:0.0)+((y>0.0)?y2:0.0));
+    return vec4(sign(d)*sqrt(abs(d))/baba, color);
+}
 // vertical
 float sdCone( in vec3 p, in vec2 c, float h )
 {
@@ -451,9 +496,20 @@ vec4 opUnion(vec4 dist1, vec4 dist2) {
 float opSubtraction( float d1, float d2 ) {
     return max(-d1,d2);
 }
-
+vec4 opSubtraction( vec4 d1, vec4 d2) {
+    if(-d1.x > d2.x){
+        return -d1;
+    }
+    return d2;
+}
 float opIntersection( float d1, float d2 ) {
     return max(d1,d2);
+}
+vec4 opIntersection( vec4 d1, vec4 d2) {
+    if(d1.x > d2.x){
+        return d1;
+    }
+    return d2;
 }
 
 vec4 opSmoothUnion( vec4 d1, vec4 d2, float k ) {
@@ -471,8 +527,18 @@ vec4 opSmoothUnion( vec4 d1, vec4 d2, float k ) {
     return vec4(d2.x,new_color);
 }
 
-//----------------------CREATE YOUR SCENE------------------------
+vec4 opSmoothUnionNoColor( vec4 d1, vec4 d2, float k ){
+    float h = max(k-abs(d1.x-d2.x),0.0);
+    if(d1.x < d2.x){
+        d1.x = d1.x - h*h*0.25/k;
+        return d1;
+    }
+    d2.x = d2.x - h*h*0.25/k;
+    return d2;
+}
 
+//----------------------CREATE YOUR SCENE------------------------
+const vec3 cyan_color = vec3(0.71,0.95,0.96);
 vec4 sdfScene(vec3 position) {
     //Define final distance
     float dist = 0.0; 
@@ -482,8 +548,49 @@ vec4 sdfScene(vec3 position) {
     float heigth = cos(u_time*3)*2.5 - 0.2;
     float sphere_radius = 0.5;
     vec4 dist_esphere = sdfSphere(position + vec3(0.0,-1.0,0.0), vec3(0.0,heigth,0.0) ,sphere_radius, vec3(1.0,0.0,0.0));
-    vec4 dist_plane = sdfBox(position, vec3(0.0,0.0,0.0), vec3(5.0,0.0,5.0), vec3(0.0,0.1,0.0)); 
-    vec_dist = opSmoothUnion(dist_esphere, dist_plane, 0.8);
+    vec4 dist_plane = sdfBox(position, vec3(0.0,0.0,0.0), vec3(5.0,1.0,5.0), vec3(0.0,1.5,0.0)); 
+    vec4 dist_pillar1 = sdCylinder(position + vec3(4.49,-5.0,4.49),  vec2(0.5,5.0),vec3(1.0,1.0,1.0));
+    vec4 dist_pillar2 = sdCylinder(position + vec3(-4.49,-5.0,4.49), vec2(0.5,5.0), vec3(1.0,1.0,1.0));
+    vec4 dist_pillar3 = sdCylinder(position + vec3(4.49,-5.0,-4.49), vec2(0.5,5.0), vec3(1.0,1.0,1.0));
+    vec4 dist_pillar4 = sdCylinder(position + vec3(-4.49,-5.0,-4.49),vec2(0.5,5.0),  vec3(1.0,1.0,1.0));
+    vec4 union_pillar1 = sdCylinder(position + vec3(-4.49,-2.0,-4.49), vec3(-3.5,3.5,-3.5), vec3(0.0,2.0,0.0), 0.1, cyan_color );
+    vec4 union_pillar2 = sdCylinder(position + vec3(4.49,-2.0,-4.49), vec3(3.5,3.5,-3.5), vec3(0.0,2.0,0.0), 0.1, cyan_color );
+    vec4 union_pillar3 = sdCylinder(position + vec3(-4.49,-2.0,4.49), vec3(-3.5,3.5,3.5), vec3(0.0,2.0,0.0), 0.1, cyan_color );
+    vec4 union_pillar4 = sdCylinder(position + vec3(4.49,-2.0,4.49), vec3(3.5,3.5,3.5), vec3(0.0,2.0,0.0), 0.1, cyan_color );
+    vec4 dist_triprism = sdTriPrism(position + vec3(0.0,-7.0,0.0), vec2(2.0,2.0), vec3(0.8));
+    vec4 white_ray = sdCylinder(position + vec3(0.0,-7.2,5.0), vec3(0.0,0.0,5.0), vec3(0.0,0.0,-15.0), 0.05, vec3(1.0) );
+    vec4 red_ray = sdCylinder(position + vec3(-3.5,-7.2,-15.0), vec3(0.0,0.0,5.0), vec3(-3.2,0.0,-15.0), 0.05, vec3(1.0,0.0,0.0) );
+    vec4 orange_ray = sdCylinder(position + vec3(-2.7,-7.2,-15.0), vec3(0.0,0.0,5.0), vec3(-2.5,0.0,-15.0), 0.05, vec3(1.0,0.3,0.0) );
+    vec4 yellow_ray = sdCylinder(position + vec3(-1.35,-7.2,-15.0), vec3(0.0,0.0,5.0), vec3(-1.2,0.0,-15.0), 0.05, vec3(1.0,0.8,0.0) );
+    vec4 green_ray = sdCylinder(position + vec3(0.0,-7.2,-15.0), vec3(0.0,0.0,5.0), vec3(0.0,0.0,-15.0), 0.05, vec3(0.0,1.0,0.0) );
+    vec4 blue_ray = sdCylinder(position + vec3(1.35,-7.2,-15.0), vec3(0.0,0.0,5.0), vec3(1.2,0.0,-15.0), 0.05, vec3(0.0,0.0,1.0) );
+    vec4 indigo_ray = sdCylinder(position + vec3(2.7,-7.2,-15.0), vec3(0.0,0.0,5.0), vec3(2.5,0.0,-15.0), 0.05, vec3(0.3,0,1.0) );
+    vec4 violet_ray = sdCylinder(position + vec3(3.5,-7.2,-15.0), vec3(0.0,0.0,5.0), vec3(3.2,0.0,-15.0), 0.05, vec3(0.8,0.0,1.0) );
+    //vec3 p, vec2 h, vec3 color
+    vec4 dist_OctogonPrism = sdOctogonPrism(position + vec3(0.0,-6.0,0.0), 1.0, 1.0, vec3(0.0,0.0,1.0));
+    vec_dist = opUnion(dist_plane, dist_pillar1);
+    vec_dist = opUnion(vec_dist, dist_pillar2);
+    vec_dist = opUnion(vec_dist, dist_pillar3);
+    vec_dist = opUnion(vec_dist, dist_pillar4);
+    vec_dist = opSmoothUnionNoColor(vec_dist, union_pillar1, 0.5);
+    vec_dist = opSmoothUnionNoColor(vec_dist, union_pillar2, 0.5);
+    vec_dist = opSmoothUnionNoColor(vec_dist, union_pillar3, 0.5);
+    vec_dist = opSmoothUnionNoColor(vec_dist, union_pillar4, 0.5);
+    if(heigth > -1.0) {
+        vec_dist = opSmoothUnion(dist_esphere, vec_dist, 0.9);
+    }else{
+        vec_dist = vec_dist;
+    }
+    vec_dist = opSmoothUnionNoColor(dist_OctogonPrism, vec_dist, 0.5);
+    vec_dist = opSmoothUnionNoColor(dist_triprism, vec_dist, 0.5);
+    vec_dist = opSmoothUnionNoColor(vec_dist, white_ray, 0.1);
+    vec_dist = opSmoothUnionNoColor(vec_dist, red_ray, 0.1);
+    vec_dist = opSmoothUnionNoColor(vec_dist, orange_ray, 0.1);
+    vec_dist = opSmoothUnionNoColor(vec_dist, yellow_ray, 0.1);
+    vec_dist = opSmoothUnionNoColor(vec_dist, green_ray, 0.1);
+    vec_dist = opSmoothUnionNoColor(vec_dist, blue_ray, 0.1);
+    vec_dist = opSmoothUnionNoColor(vec_dist, indigo_ray, 0.1);
+    vec_dist = opSmoothUnionNoColor(vec_dist, violet_ray, 0.1);
     if(u_light_show){
         vec4 light_dist = sdfSphere(position, vec3(u_light_pos_x,u_light_pos_y,u_light_pos_z), 0.5, u_light_color);
         vec_dist = opUnion(light_dist, vec_dist);

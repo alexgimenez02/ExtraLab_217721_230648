@@ -488,7 +488,7 @@ vec4 opSmoothUnion( vec4 d1, vec4 d2, float k ) {
 }
 
 //----------------------CREATE YOUR SCENE------------------------
-
+const vec3 granate = vec3(0.67,0.16,0.24);
 vec4 sdfScene(vec3 position) {
     //Define final distance
     vec4 dist = vec4(0.0); 
@@ -506,15 +506,14 @@ vec4 sdfScene(vec3 position) {
     vec4 dist_torus = sdTorus(position, vec2(r,r * 0.2), vec3(1.0));
     vec4 dist_smooth_torus = sdfBox(position, position + vec3(-0.5,0.0,0.0), vec3(0.2,0.0,0.5), vec3(1.0));
     //----------------------
-    vec3 box_color = vec3(0.67,0.16,0.24);
-    vec4 dist_box1 = sdfBox(position, vec3(2.0,0.0,0.0), vec3(0.1), box_color);
-    vec4 dist_box2 = sdfBox(position, vec3(-2.0,0.0,0.0), vec3(0.1), box_color);
-    vec4 dist_box3 = sdfBox(position, vec3(0.0,0.0,2.0), vec3(0.1), box_color);
-    vec4 dist_box4 = sdfBox(position, vec3(0.0,0.0,-2.0), vec3(0.1), box_color);
-    vec4 dist_box5 = sdfBox(position, vec3(1.4,0.0,1.4), vec3(0.1), box_color);
-    vec4 dist_box6 = sdfBox(position, vec3(-1.4,0.0,1.4), vec3(0.1), box_color);
-    vec4 dist_box7 = sdfBox(position, vec3(1.4,0.0,-1.4), vec3(0.1), box_color);
-    vec4 dist_box8 = sdfBox(position, vec3(-1.4,0.0,-1.4), vec3(0.1), box_color);
+    vec4 dist_box1 = sdfBox(position, vec3(2.0,0.0,0.0), vec3(0.1), granate);
+    vec4 dist_box2 = sdfBox(position, vec3(-2.0,0.0,0.0), vec3(0.1), granate);
+    vec4 dist_box3 = sdfBox(position, vec3(0.0,0.0,2.0), vec3(0.1), granate);
+    vec4 dist_box4 = sdfBox(position, vec3(0.0,0.0,-2.0), vec3(0.1), granate);
+    vec4 dist_box5 = sdfBox(position, vec3(1.4,0.0,1.4), vec3(0.1), granate);
+    vec4 dist_box6 = sdfBox(position, vec3(-1.4,0.0,1.4), vec3(0.1), granate);
+    vec4 dist_box7 = sdfBox(position, vec3(1.4,0.0,-1.4), vec3(0.1), granate);
+    vec4 dist_box8 = sdfBox(position, vec3(-1.4,0.0,-1.4), vec3(0.1), granate);
     dist = opUnion(dist_box1, dist_box2);
     dist = opUnion(dist, dist_box3);
     dist = opUnion(dist, dist_box4);
